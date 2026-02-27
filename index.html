@@ -1,0 +1,185 @@
+<meta name='viewport' content='width=device-width, initial-scale=1'/><!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BURAQ Secure Crypt</title>
+    <style>
+        :root {
+            --bg: #0f111a;
+            --container-bg: #1a1d29;
+            --text: #e0e6ed;
+            --border: #2d3142;
+            --accent: #007aff;
+            --error: #ff3b30;
+            --success: #34c759;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: sans-serif;
+            display: flex; justify-content: center; align-items: center;
+            min-height: 100vh; margin: 0; padding: 15px;
+            overflow: hidden; /* يمنع اهتزاز الصفحة */
+            touch-action: pan-x pan-y;
+        }
+
+        .container {
+            background-color: var(--container-bg);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 25px;
+            width: 100%; max-width: 380px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .header { text-align: center; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+        
+        input, textarea {
+            width: 100%; padding: 12px; margin: 8px 0;
+            border: 1px solid var(--border); border-radius: 10px;
+            background: #0d1117; color: var(--text);
+            box-sizing: border-box; font-size: 16px; outline: none;
+        }
+
+        .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+        
+        button {
+            padding: 14px; border: none; border-radius: 10px;
+            cursor: pointer; font-weight: bold; font-size: 14px;
+        }
+
+        .btn-enc { background: var(--accent); color: white; }
+        .btn-dec { background: #2d3142; color: white; }
+        .btn-clear { background: transparent; border: 1px solid var(--border); color: #888; }
+        .btn-copy { background: var(--success); color: white; } /* زر النسخ الجديد */
+
+        #result-box {
+            margin-top: 20px; padding: 15px; border-radius: 10px;
+            background: #0d1117; border: 1px dashed var(--border);
+            min-height: 60px; word-break: break-all; font-family: monospace;
+            font-size: 0.9rem;
+        }
+
+        #copy-toast {
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+            background: var(--success); color: white; padding: 10px 20px;
+            border-radius: 25px; display: none; z-index: 100;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        .footer {
+            margin-top: 20px; text-align: center; font-size: 0.7rem;
+            opacity: 0.5; padding-top: 15px; border-top: 1px solid var(--border);
+        }
+        .buraq { color: var(--accent); font-weight: 900; }
+        
+        #hidden-copy { position: absolute; left: -9999px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h2 style="margin:0;">BURAQ CRYPT</h2>
+    </div>
+
+    <input type="password" id="pass" placeholder="رمز الوصول">
+    <textarea id="data" rows="5" placeholder="أدخل البيانات هنا..."></textarea>
+
+    <div class="actions">
+        <button class="btn-enc" onclick="handle(1)">تشفير 🔒</button>
+        <button class="btn-dec" onclick="handle(0)">فك التشفير 🔓</button>
+        <button class="btn-clear" onclick="clearData()">مسح 🗑️</button>
+        <button class="btn-copy" onclick="copyRes()">نسخ النص 📋</button>
+    </div>
+
+    <div id="result-box">النتيجة تظهر هنا...</div>
+
+    <div class="footer">
+        SECURED BY <span class="buraq">BURAQ</span> &copy; 2026
+    </div>
+</div>
+
+<textarea id="hidden-copy"></textarea>
+<div id="copy-toast">تم نسخ النص بنجاح ✅</div>
+
+<script>
+    const KEY_TAG = "[BQ-SEC]";
+
+    function handle(mode) {
+        const pass = document.getElementById('pass').value.trim();
+        const data = document.getElementById('data').value.trim();
+        const resBox = document.getElementById('result-box');
+
+        if (!pass || !data) return;
+
+        try {
+            if (mode === 1) {
+                let raw = KEY_TAG + data;
+                let enc = "";
+                for (let i = 0; i < raw.length; i++) {
+                    enc += String.fromCharCode(raw.charCodeAt(i) ^ pass.charCodeAt(i % pass.length));
+                }
+                resBox.innerText = btoa(unescape(encodeURIComponent(enc)));
+                resBox.style.color = "var(--success)";
+            } else {
+                let decoded = decodeURIComponent(escape(atob(data)));
+                let dec = "";
+                for (let i = 0; i < decoded.length; i++) {
+                    dec += String.fromCharCode(decoded.charCodeAt(i) ^ pass.charCodeAt(i % pass.length));
+                }
+                if (dec.startsWith(KEY_TAG)) {
+                    resBox.innerText = dec.replace(KEY_TAG, "");
+                    resBox.style.color = "var(--text)";
+                } else {
+                    resBox.innerText = "❌ الرمز غلط";
+                    resBox.style.color = "var(--error)";
+                }
+            }
+        } catch (e) {
+            resBox.innerText = "⚠️ خطأ في البيانات";
+            resBox.style.color = "var(--error)";
+        }
+    }
+
+    function clearData() {
+        document.getElementById('data').value = "";
+        document.getElementById('pass').value = "";
+        document.getElementById('result-box').innerText = "تم المسح";
+        document.getElementById('result-box').style.color = "var(--text)";
+    }
+
+    function copyRes() {
+        const text = document.getElementById('result-box').innerText;
+        // منع النسخ إذا لم تكن هناك نتيجة حقيقية
+        if (text.includes("النتيجة") || text.includes("خطأ") || text.includes("غلط") || text === "تم المسح") return;
+        
+        const hiddenInput = document.getElementById('hidden-copy');
+        hiddenInput.value = text;
+        hiddenInput.select();
+        hiddenInput.setSelectionRange(0, 99999); // لضمان الاختيار في الهواتف
+        
+        try {
+            document.execCommand('copy');
+            const toast = document.getElementById('copy-toast');
+            toast.style.display = "block";
+            setTimeout(() => { toast.style.display = "none"; }, 1500);
+        } catch (err) {
+            alert("فشل النسخ التلقائي، انسخ النص يدوياً.");
+        }
+    }
+
+    // منع الزوم اليدوي تماماً لثبات الموقع
+    document.addEventListener('touchstart', function(event) {
+        if (event.touches.length > 1) {
+            event.preventDefault();
+        }
+    }, { passive: false });
+</script>
+
+
+<script src="https://static.app/js/static.js" type="text/javascript"></script>
+</body>
+</html>
